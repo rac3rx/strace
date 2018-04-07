@@ -1,0 +1,234 @@
+strace and syscalls (system calls)
+strace -e                              # limit syscalls comma seperated list
+strace -o                              # output file
+strace -f                              # trace child processes
+
+script and strace
+script /tmp/lftp.strace.script
+strace lftp sitename
+grep /home/akkana /tmp/lftp.strace.script
+
+strace lftp sitename |& grep open      #  I have to use |& instead of just | because strace prints its output on stderr instead of stdout.
+strace -fe trace=open <command>
+strace 2>&1 /usr/sbin/snmpd | grep snmpd.conf
+strace php 2>&1 | grep php.ini
+strace lftp sitename |& grep --line-buffered open | grep /home/akkana
+strace -e open cat dead.letter
+
+strace -c ls                           # The summary of the system calls, time of execution, errors etc. can be displayed in a neat manner with -c option:
+
+strace -e open                         # files open
+
+
+$ strace -t ls  timestamp can be displayed before each output line with -t option.
+strace -tt ls   finer timestamp
+strace -ttt ls  finer timestamp
+strace -r ls    relative time
+trace -c -p 11084 
+strace -c >/dev/null ls
+strace -e poll,select,connect,recvfrom,sendto nc www.news.com 80
+strace -e poll,select,connect,recvfrom,sendto nc www.news.com 80
+strace -f /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+
+strace -f /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+netstat -nap | grep :21
+netstat -plant | grep :21
+
+ps -C firefox-bin
+sudo strace -p 1725 -o firefox_trace.txt
+tail -f firefox_trace.txt
+
+ltrace
+
+man 2 syscalls
+yum install manpages-dev
+
+stat
+
+find /etc/ -type f -amin 1
+
+autrace
+
+lsof -p $(pidof <exec>)                # could miss open/read/close
+
+strings $(which screen) | grep '\.rc$'   # rc files run commands or run control eg /etc/rc.d or vimrc
+strings $(which screen) | grep '\.conf$'   # rc files run commands or run control eg /etc/rc.d or vimrc
+strings $(which screen) | grep '\.cfg$'   # rc files run commands or run control eg /etc/rc.d or vimrc
+
+-V switch
+httpd -V  specify config
+httpd -V | grep '\.conf'
+
+
+http://shallowsky.com/blog/linux/cmdline/strace.html
+I have to use |& instead of just | because strace prints its output on stderr instead of stdout.
+strace shows you all system calls being used by a program. What's a system call? Well, it's anything in section 2 of the Unix manual. You can get a complete list by typing: man 2 syscalls (you may have to install developer man pages first -- on Debian that's the manpages-dev package). But the important thing is that most file access calls -- open, read, chmod, rename, unlink (that's how you remove a file), and so on -- are system calls.
+
+#
+# cheat sheet 1
+#
+Monitor opening of files: strace -e open
+See all file activity: strace -e trace=file -p 1234 or strace -e trace=desc -p 1234
+If you want to track specific paths, use 1 or more times the -P parameter, following by the path.
+
+# sudo strace -P /etc/cups -p 2261
+Process 2261 attached
+— SIGHUP {si_signo=SIGHUP, si_code=SI_USER, si_pid=6149, si_uid=0} —
+lstat(“/etc/cups”, {st_mode=S_IFDIR|0755, st_size=4096, …}) = 0
+openat(AT_FDCWD, “/etc/cups”, O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 7
+getdents(7, /* 11 entries */, 32768) = 336
+getdents(7, /* 0 entries */, 32768) = 0
+close(7) = 0
+openat(AT_FDCWD, “/etc/cups”, O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC) = 7
+getdents(7, /* 11 entries */, 32768) = 336
+getdents(7, /* 0 entries */, 32768) = 0
+close(7) = 0
+
+Common calls:
+
+access
+close (close file handle)
+fchmod (change file permissions)
+fchown (change file ownership)
+fstat (retrieve details)
+lseek (move through file)
+open (open file for reading/writing)
+read (read a piece of data)
+statfs (retrieve file system related details)
+A related example screen output:
+
+screenshot of strace monitoring file access and activity
+Monitoring file access and activity with strace
+
+Monitoring the network
+Strace definitely can be useful for revealing more details about network traffic. Very useful to determine what network related connections are used, like when building your Docker image.
+
+strace -e trace=network
+
+Common syscalls:
+
+bind – link the process to a network port
+listen – allow to receive incoming connections
+socket – open a local or network socket
+setsockopt – define options for an active socket
+Monitoring memory calls
+To get better insights on the memory usage and system calls, strace can monitor for these as well. They are nicely grouped in the memory group.
+
+strace -e trace=memory
+
+Common syscalls:
+
+mmap
+munmap
+Strace Cheat Sheet – Overview
+Useful options and examples
+
+-c – See what time is spend and where (combine with -S for sorting)
+-f – Track process including forked child processes
+-o my-process-trace.txt – Log strace output to a file
+-p 1234 – Track a process by PID
+-P /tmp – Track a process when interacting with a path
+-T – Display syscall duration in the output
+Track by specific system call group
+
+-e trace=ipc – Track communication between processes (IPC)
+-e trace=memory – Track memory syscalls
+-e trace=network – Track memory syscalls
+-e trace=process – Track process calls (like fork, exec)
+-e trace=signal – Track process signal handling (like HUP, exit)
+-e trace=file – Track file related syscalls
+Trace multiple syscalls
+
+strace -e open,close
+
+
+strace -e trace=open program [arguments] | grep -v ' = -1 ENOENT' could improve the situation, but it's not true either. The latter will fail to detect unfinished and then resumed calls to open
+
+
+#
+# cheat sheet 2
+#
+strace traces system calls and signals and is an invaluable tool for gathering context when debugging.
+
+This cheat sheet will show a few useful ways of using strace, how to filter the output, and summarize some of the more useful commands line arguments that strace accepts.
+
+strace PTRACE_TRACEME EPERM (Operation not permitted)
+You should run strace as root. If you get this message when running as root, it means that strace is not allowed to attach to processes on your system.
+
+You can enable strace to attach to processes by changing a setting in proc:
+
+sudo bash -c 'echo 0 > /proc/sys/kernel/yama/ptrace_scope'
+To make this change permanent between reboots first check your system for a file named: /etc/sysctl.d/10-ptrace.conf.
+
+If your system has that file, modify it to read:
+
+kernel.yama.ptrace_scope = 0
+If your system does NOT have that file:
+
+Open /etc/sysctl.conf in your favorite
+Find the setting kernel.yama.ptrace_scope
+If it exists, modify it to set the value to 0
+If it does not exist, add a line with kernel.yama.ptrace_scope = 0
+strace pid
+strace a running process
+strace -p [pid]
+strace a running process and threads
+strace -fp [pid]
+strace a running process and print strings
+strace -s 80 -fp [pid]
+This will print the first 80 characters of every string.
+
+strace program
+strace a program
+strace ./program
+strace a program and threads
+strace -f ./program
+strace a program and print strings
+strace -s 80 -f ./program
+This will print the first 80 characters of every string.
+
+strace futex
+While using strace, you may see many futex system calls, for example:
+
+[pid  2082] futex(0x7f4c4d3bff30, FUTEX_WAKE_PRIVATE, 1) = 0 <0.000003>
+[pid  2081] futex(0x7f4c4d3bff60, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+[pid  2082] futex(0x7f4c4d3bff60, FUTEX_WAKE_PRIVATE, 1) = 0 <0.000003>
+[pid  2082] futex(0x7f4c4d3bff64, FUTEX_WAIT_PRIVATE, 7, NULL <unfinished ...>
+The futex system call is commonly used by threading implementations, like libpthread, to implement higher level locking primitives, like mutexes, semaphores, and more.
+
+filter out futex calls
+If your application is making a particularly large number of futex calls and you don’t want to trace them, you can either:
+
+Exclude just the futex calls by using grep:
+
+strace strace -Tf ./program 2>&1 | grep -v futex
+Or, trace a specific set of system calls you do care about. In this example, trace open, read, and write this program and its threads:
+
+strace -Tfe trace=open,read,write ./program
+Create a package repository in less than 10 seconds, free.
+
+Other useful options
+There are many useful options that be added when using strace. Some of the more useful options for general purposes are:
+
+-f Follow threads and child processes that are created. Useful option because many programs will spawn additional processes or threads to do work.
+
+-T Print time spent in system call. This can be useful if you are trying to determine if a particular system call is taking a lot of time to return.
+
+-t Print the time of day at the start of each line.
+
+-s [size] Print [size] characters per string displayed. This is useful if you are trying to trace what a program is writing to a file descriptor.
+
+-c Print a histogram of the number of system calls and the time spent at the termination of strace.
+
+-e trace=open,close Trace only the open and close system calls.
+
+For a complete list of command line arguments, see the strace man page.
+
+Conclusion
+strace is an essential tool for debugging anything on a Linux system. You should use strace anytime you want to understand what a process is doing. Reaching for strace as the first line of defense when debugging anything is a great way to quickly gather context about a problem.
+
+strace accepts many command line arguments and readers are encouraged to consult the strace man page to learn about all the arguments.
+REf:
+https://linux-audit.com/the-ultimate-strace-cheat-sheet/
+https://blog.packagecloud.io/eng/2015/11/15/strace-cheat-sheet/
+
